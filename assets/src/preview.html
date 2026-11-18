@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>Crossfade DJ — превью</title>
+<link rel="stylesheet" href="../../dist/styles.css">
+<style>
+    html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; }
+    body {
+        font-family: "Segoe UI", system-ui, sans-serif; color: #f2f2f5;
+        background: radial-gradient(1200px 700px at 78% 50%, #2a2140 0%, transparent 70%),
+                    radial-gradient(900px 600px at 10% 90%, #3a2a10 0%, transparent 70%), #0d0d12;
+    }
+    .hero { position: absolute; left: 140px; top: 170px; width: 820px; }
+    .hero h1 { font-size: 92px; margin: 0 0 18px; letter-spacing: -2px; font-weight: 800; }
+    .hero h1 span { color: #ffcc00; }
+    .hero p { font-size: 30px; line-height: 1.4; margin: 0 0 54px; color: #c9c9d4; }
+    .feat { display: grid; gap: 26px; }
+    .feat div { display: grid; grid-template-columns: 56px 1fr; align-items: center; font-size: 30px; color: #e9e9ef; }
+    .feat b { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: #ffcc0022; color: #ffcc00; font-size: 24px; }
+    .feat small { display: block; font-size: 22px; color: #9a9aa8; margin-top: 2px; }
+    #xfdj-panel { box-shadow: 0 30px 80px rgba(0,0,0,.55); max-height: none !important; overflow: hidden !important; }
+    /* панель с планом перехода */
+    #xfdj-panel:not(.clone) { left: 1000px !important; bottom: auto !important; top: 250px; transform: scale(1.25); transform-origin: left top; }
+    /* копия той же панели с раскрытыми настройками */
+    #xfdj-panel.clone { position: absolute; left: 1520px !important; bottom: auto !important; top: 60px; height: 1020px;
+        -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+    .cap { position: absolute; font-size: 22px; color: #9a9aa8; letter-spacing: .02em; }
+</style>
+</head><body>
+<div class="cap" style="left:1000px; top:210px">план следующего перехода</div>
+<div class="cap" style="left:1520px; top:22px">настройки ⚙</div>
+<div class="hero">
+    <h1>Crossfade <span>DJ</span></h1>
+    <p>Переходы между треками в Яндекс Музыке —<br>как на диджейском сете</p>
+    <div class="feat">
+        <div><b>♩</b><span>Сведение «бит в бит»<small>темпы встречаются посередине, доли совпадают</small></span></div>
+        <div><b>⤓</b><span>Переход ровно на дроп<small>дроп старого кончается — бьёт дроп нового</small></span></div>
+        <div><b>≈</b><span>Обмен басов, фильтры, эхо<small>без «каши» из двух треков</small></span></div>
+        <div><b>⚙</b><span>Пресеты и ползунки<small>настройте переход под себя</small></span></div>
+    </div>
+</div>
+<script src="demo-data.js"></script>
+<script>
+// Имитация плеера Яндекса — только чтобы панель показала настоящий план перехода
+const obs = (v) => { const ls = new Set(); return { get value() { return v; }, set value(n) { v = n; ls.forEach(f => f(n)); }, onChange(f) { ls.add(f); return () => ls.delete(f); } }; };
+const el = { currentTime: 30, paused: false, playbackRate: 1, preservesPitch: true };
+function Pair(id, title, artist, dur) { this.entity = { data: { meta: { id, title, durationMs: Math.round(dur * 1000), type: 'music', artists: [{ name: artist }], fade: { inStart: 0, inStop: 2, outStart: dur - 6, outStop: dur - 0.5 } } }, mediaSourceData: null }; }
+Pair.prototype.getCrossParams = function () { return this.entity.data.meta.fade; };
+Pair.prototype.canBeCrossedWith = function () { return true; };
+const engine = {
+    isEnabled: obs(true), isCrossing: obs(false), config: { useCrossfade: true }, currentAudioElement: obs(el), logger: { log() {} },
+    stopCrossing() {}, forceStopCrossfade() {},
+    startTimeTracking(cur, next) { this.pulseSyncCrossfadePlan = { currentPair: cur, nextPair: next, currentParams: cur.getCrossParams(), nextParams: next.getCrossParams() }; },
+    getCrossingStartPosition(e, t) { return Math.max(0, t.inStart - 1); }, isGaplessEnabled() { return true; },
+    preparePlayback() { return Promise.resolve({ ready: true }); },
+};
+const A = new Pair(101, 'Neon Nights', 'Demo Artist', DEMO.durA), B = new Pair(102, 'Afterglow', 'Sample Crew', DEMO.durB);
+window.pulsesyncApi = { playerInstance: { state: { currentMediaPlayer: obs(engine), mediaPlayersStore: obs({ audio: engine }), queueState: { currentEntity: obs(A), nextEntity: obs(B) } } } };
+localStorage.clear();
+localStorage.setItem('xfdj:a:101', JSON.stringify(DEMO.A));
+localStorage.setItem('xfdj:a:102', JSON.stringify(DEMO.B));
+localStorage.setItem('xfdj:index', JSON.stringify(['101', '102']));
+// Прошлый переход для строки «доли ±… мс»
+window.addEventListener('load', () => {
+    const t = setInterval(() => {
+        const X = window.__xfdj; if (!X || !X.state.plan) return;
+        clearInterval(t);
+        el.currentTime = X.state.plan.a.outStart - 72;
+        X.state.lastSync = { median: 0.0015, p90: 0.0075 };
+        X.state.showSettings = true;
+        X.tick();
+        setTimeout(() => {
+            const clone = document.getElementById('xfdj-panel').cloneNode(true);
+            clone.classList.add('clone');
+            document.body.appendChild(clone);
+            X.state.showSettings = false;
+            X.tick();
+        }, 700);
+    }, 100);
+});
+</script>
+<script src="../../dist/script.js"></script>
+</body></html>

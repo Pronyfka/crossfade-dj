@@ -1,0 +1,26 @@
+{
+    "id": "crossfade-dj",
+    "name": "Crossfade DJ",
+    "description": "Диджейские переходы между треками: анализ BPM, сведение «бит в бит» со встречей темпов, обмен басов, фильтры и эхо, переход ровно на дроп следующего трека.",
+    "version": "1.0.0",
+    "author": "Pronyfka",
+    "type": "script",
+    "image": "image.png",
+    "banner": "banner.png",
+    "preview": "preview.png",
+    "libraryLogo": "",
+    "css": "styles.css",
+    "script": "script.js",
+    "tags": [
+        "Player",
+        "Crossfade",
+        "Music",
+        "Tools"
+    ],
+    "dependencies": [],
+    "conflictsWith": [],
+    "allowedUrls": [],
+    "supportedVersions": [
+        ">=5.128.0"
+    ]
+}
